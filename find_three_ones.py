@@ -3,13 +3,13 @@
 import itertools
 import random
 from collections import defaultdict, namedtuple
-from dataclasses import dataclass
-from functools import cache
 
-from moves import moves
+from _table import table
 
 
 class UnionFind:
+    """e.g. https://en.wikipedia.org/wiki/Disjoint-set_data_structure"""
+
     def __init__(self, i=None):
         self._size = 0 if i is None else 1
         self.i = i
@@ -19,9 +19,9 @@ class UnionFind:
         return self.parent is self
 
     def root(self):
-        if not self.is_root():
-            self.parent = self.parent.root()
-        return self.parent
+        while not self.is_root():
+            self, self.parent = self.parent, self.parent.parent
+        return self
 
     def merge(self, other):
         r1, r2 = self.root(), other.root()
@@ -99,14 +99,14 @@ class Partition:
             self.one_node.size,
         )
 
-    def _move(self):
-        return moves[self._signature()]
+    def _table_row(self):
+        return table[self._signature()]
 
     def value(self):
-        return self._move()[0]
+        return self._table_row()[0]
 
     def _data(self):
-        return self._move()[1]
+        return self._table_row()[1]
 
     def done(self):
         return self.value() == 0
@@ -157,7 +157,6 @@ def alg(compare):
         sig = partition._signature()
         assert not partition.equivalent(i, j), (sig, (i, j))
         result = compare(i, j)
-        # print(f"{sig} {partition._move()}: compare{(i, j)}->{result}", flush=True)
         partition.register_comparison(i, j, result)
         assert sig != partition._signature()
 
@@ -172,6 +171,7 @@ def trial(input):
     n_comparisons = 0
 
     def compare(i, j):
+        nonlocal n_comparisons
         n_comparisons += 1
         return (input[i] > input[j]) - (input[i] < input[j])
 

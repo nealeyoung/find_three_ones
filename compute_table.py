@@ -201,7 +201,7 @@ EDGES = dict(
         11,
         LB(one=1),
         (
-            R(0, D(u2=-2, one=2)),  # u2 is on
+            R(0, D(u2=-2, one=2)),  # u2 is one
             R(-1, D(u2=-2, zero=2)),  # u2 is zero
         ),
     ),
@@ -229,11 +229,6 @@ class Node:
     def __init__(self, position):
         assert position.legal
         self.position = position
-
-        # if STACK:
-        #     assert position.components < STACK[-1].position.components, (STACK, self)
-
-        # STACK.append(self)
 
         if self.position.n_consistent_assignments == 1:
             self.comparison_edges = ()
@@ -274,8 +269,6 @@ class Node:
                 self.min_max_node = self.min_max_edge.node
                 self.value = 1 + self.min_max_node.value
 
-        # assert STACK.pop() is self
-
     @cached_property
     def play(self):
         def _play():
@@ -299,7 +292,7 @@ class Node:
 
 
 def dump_alg(start):
-    with open("moves.py", "w") as sys.stdout:
+    with open("_table.py", "w") as sys.stdout:
 
         def dfs(node):
             if hasattr(node, "visited"):
@@ -318,7 +311,7 @@ def dump_alg(start):
 
         print("from types import MappingProxyType")
 
-        print("moves = MappingProxyType({")
+        print("table = MappingProxyType({")
         dfs(start)
         print("})")
 
