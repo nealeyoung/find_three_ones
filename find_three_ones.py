@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 import itertools
-import random
 from collections import defaultdict
 
 from _table import table
-
 from disjoint_set import make_set
 
 
