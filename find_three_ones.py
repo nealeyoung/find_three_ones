@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import itertools
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from _table import table
 from disjoint_set import make_set
+from position import Position
 
 
 class Partition:
@@ -63,7 +64,16 @@ class Partition:
         )
 
     def _table_row(self):
-        return table[self._signature()]
+        sig = self._signature()
+        try:
+            return table[sig]
+        except KeyError:
+            posn = Position(*sig)
+            if posn.n_consistent_assignments == 1:
+                return (0, tuple(posn.one_consistent_assignment.values))
+            if posn.u1 <= 1:                  # cannot be (u1, u1)
+                return (99, ("u2", "u2"))
+            return (99, ("u1", "u1"))         # default to (u1, u1)
 
     def _data(self):
         return self._table_row()[1]
