@@ -1,5 +1,6 @@
 # find_three_ones
-An algorithm to compute an optimal algorithm to find three ones, in a 100-element 0/1 array, using a minimum number of comparisons.
+An algorithm to compute an optimal algorithm to find three ones, in a 100-element 0/1 array, using a minimum number of comparisons
+(in fact, 70).
 
 Inspired by https://cs.stackexchange.com/questions/166885/find-1s-in-almost-all-0-array-using-comparisons-only .
 
