@@ -1,6 +1,8 @@
 # find_three_ones
 An algorithm to compute an optimal algorithm to find three ones, in a 100-element 0/1 array, using a minimum number of comparisons.
 
+Inspired by https://cs.stackexchange.com/questions/166885/find-1s-in-almost-all-0-array-using-comparisons-only .
+
 The algorithm that computes the algorithm is in recompute_table.py .  Running that script
 takes a few minutes.  It computes an optimal algorithm for the problem and outputs the
 algorithm (suitably encoded in a table) to the file _table.py .
