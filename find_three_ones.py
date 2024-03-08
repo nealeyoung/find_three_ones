@@ -71,9 +71,24 @@ class Partition:
             posn = Position(*sig)
             if posn.n_consistent_assignments == 1:
                 return (0, tuple(posn.one_consistent_assignment.values))
-            if posn.u1 <= 1:                  # cannot be (u1, u1)
-                return (99, ("u2", "u2"))
-            return (99, ("u1", "u1"))         # default to (u1, u1)
+            # either (u1, u1) or (u2, u2)
+
+            if posn.u2 < 4:                  # cannot be u2
+                x = 1
+            elif posn.u1 < 2:                  # cannot be u1
+                x = 2
+            elif posn.u1 > 31:
+                x = 1
+            elif posn.one == 2:
+                x = 1
+            elif (posn.u1, posn.one) == (2, 0):
+                x = 1
+            elif posn.u1 == 2:
+                x = 2
+            else:
+                x = 1
+            x = f"u{x}"
+            return (99, (x, x))
 
     def _data(self):
         return self._table_row()[1]

@@ -205,17 +205,22 @@ def dump_alg(start):
                             dfs(r_edge.node)
 
                 posn = node.position
-                row = f"    {node.position}: ({node.value}, {data}),"
-                print(
-                    row,
-                    file=left_out
-                    if (
-                        node.value == 0   # can determine this from position
-                        or (data == ("u2", "u2") and posn.u1 <= 1)
-                        or data == ("u1", "u1")
+                row = f"    {posn}: ({node.value}, {data}),"
+
+                skip = (
+                    node.value == 0
+                    or data == ("u1", "u1")
+                    or (
+                        data == ("u2", "u2")
+                        and (
+                            posn.u1 <= 2
+                            or posn.u2 < 4
+                            or posn.u1 > 31
+                            or posn.one == 2
+                        )
                     )
-                    else sys.stdout,
                 )
+                print(row, file=left_out if skip else sys.stdout)
 
             print("table = {")
             dfs(start)
