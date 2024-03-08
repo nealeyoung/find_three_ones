@@ -2,209 +2,118 @@
 
 import itertools
 import random
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 from _table import table
 
-
-class UnionFind:
-    """e.g. https://en.wikipedia.org/wiki/Disjoint-set_data_structure"""
-
-    def __init__(self, i=None):
-        self._size = 0 if i is None else 1
-        self.i = i
-        self.parent = self
-
-    def is_root(self):
-        return self.parent is self
-
-    def root(self):
-        while not self.is_root():
-            self, self.parent = self.parent, self.parent.parent
-        return self
-
-    def merge(self, other):
-        r1, r2 = self.root(), other.root()
-        if r1 is not r2:
-            if r1._size < r2._size:
-                r1, r2 = r2, r1
-            r2.parent = r1
-            r1._size += r2._size
-
-    def equivalent(self, other):
-        return self.root() == other.root()
-
-    @property
-    def size(self):
-        return self.root()._size
+from disjoint_set import make_set
 
 
 class Partition:
     def __init__(self, indices):
-        self.indices = indices
-        self.nodes = {i: UnionFind(i) for i in self.indices}
-        self.zero_node = UnionFind()
-        self.one_node = UnionFind()
-        self.known_nodes = {-1: self.zero_node, 1: self.one_node}
-        self.unknown_roots_by_size = defaultdict(set)
-        self.unknown_roots_by_size[1] = set(self.nodes.values())
+        self.parts = {i: make_set(i) for i in indices}
+        self.unknown_parts_by_size = defaultdict(set)
+        self.unknown_parts_by_size[1] = set(self.parts.values())
 
-    def _merge(self, node1, node2):
-        r1, r2 = node1.root(), node2.root()
-        if r1 is not r2:
-            self.unknown_roots_by_size[r1.size].discard(r1)
-            self.unknown_roots_by_size[r2.size].discard(r2)
-            r1.merge(r2)
-            r1 = r1.root()
-            if r1 not in (self.zero_node.root(), self.one_node.root()):
-                self.unknown_roots_by_size[r1.size].add(r1)
+        self.zero_part = make_set()
+        self.one_part = make_set()
+        self.known_parts = {-1: self.zero_part, 1: self.one_part}
 
-    def equivalent(self, i, j):
-        return self.nodes[i].equivalent(self.nodes[j])
+    def equiv(self, i, j):
+        return self.parts[i].equiv(self.parts[j])
 
-    def known(self, node):
-        test = node.equivalent
-        return test(self.zero_node) or test(self.one_node)
+    def _known(self, part):
+        return part.equiv(self.zero_part, self.one_part)
+
+    def _union(self, p1, p2):
+        p1, p2 = p1.find(), p2.find()
+        if not p1.equiv(p2):
+            for p in (p1, p2):
+                self.unknown_parts_by_size[p.size()].discard(p)
+
+            p1.union(p2)
+            p1 = p1.find()
+            if not self._known(p1):
+                self.unknown_parts_by_size[p1.size()].add(p1)
 
     def register_comparison(self, i, j, result):
-        node1, node2 = self.nodes[i], self.nodes[j]
+        p1, p2 = self.parts[i], self.parts[j]
         if result == 0:
-            self._merge(node1, node2)
-            if node1.size > 3:
-                self._merge(self.zero_node, node1)
+            self._union(p1, p2)
+            if p1.size() > 3:
+                self._union(self.zero_part, p1)
         else:
-            self._merge(self.known_nodes[result], node1)
-            self._merge(self.known_nodes[-result], node2)
+            self._union(self.known_parts[result], p1)
+            self._union(self.known_parts[-result], p2)
 
-    def indices_w_size(self, size, n=None):
+    def parts_w_size(self, size, n=None):
         if n == 0:
             return ()
-        generator = (
-            i for i, node in self.nodes.items() if node.size == size and not self.known(node)
-        )
-        return generator if n is None else itertools.islice(generator, n)
+        iterator = self.unknown_parts_by_size[size]
+        return iterator if n is None else itertools.islice(iterator, n)
 
-    def root_indices_w_size(self, size, n=None):
-        if n == 0:
-            return ()
-        generator = (root.i for root in self.unknown_roots_by_size[size])
-        return generator if n is None else itertools.islice(generator, n)
+    def parts_w_size_reps(self, size, n=None):
+        return (p.i for p in self.parts_w_size(size, n))
 
     def _signature(self):
         return (
-            len(self.unknown_roots_by_size[1]),
-            2 * len(self.unknown_roots_by_size[2]),
-            3 * len(self.unknown_roots_by_size[3]),
-            self.zero_node.size,
-            self.one_node.size,
+            len(self.unknown_parts_by_size[1]),
+            2 * len(self.unknown_parts_by_size[2]),
+            3 * len(self.unknown_parts_by_size[3]),
+            self.zero_part.size(),
+            self.one_part.size(),
         )
 
     def _table_row(self):
         return table[self._signature()]
 
-    def value(self):
-        return self._table_row()[0]
-
     def _data(self):
         return self._table_row()[1]
+
+    def value(self):
+        return self._table_row()[0]
 
     def done(self):
         return self.value() == 0
 
     def indices_to_compare(self):
         assert not self.done()
-        move = self._data()
-        indices = []
-        indices.extend(self.root_indices_w_size(1, move.count("u1")))
-        indices.extend(self.root_indices_w_size(2, move.count("u2")))
-        indices.extend(self.root_indices_w_size(3, move.count("u3")))
-        if move.count("zero"):
-            indices.append(self.zero_node.i)
-        if move.count("one"):
-            indices.append(self.one_node.i)
-        # print(move, indices)
-        try:
-            i, j = indices
-        except ValueError:
-            assert False, (indices, move)
-        return i, j
+
+        def indices():
+            to_compare = self._data()
+            for i, ui in zip(range(1, 4), ("u1", "u2", "u3")):
+                yield from self.parts_w_size_reps(i, to_compare.count(ui))
+            for p, name in zip((self.zero_part, self.one_part), ("zero", "one")):
+                if to_compare.count(name):
+                    yield p
+
+        indices = tuple(indices())
+        assert len(indices) == 2, indices
+        return indices
 
     def solution(self):
         assert self.done()
 
-        _Position = namedtuple("_Position", ["u1", "u2", "u3", "zero", "one"])
+        parts = self.parts.values()
+        soln = self._data()
+        sizes = tuple(s for s in range(1, 4) if soln[s - 1])
+        ones = tuple(
+            p.i
+            for p in parts
+            if p.equiv(self.one_part) or (p.size() in sizes and not self._known(p))
+        )
 
-        ones = [i for i, node in self.nodes.items() if self.one_node.equivalent(node)]
-        posn = _Position(*self._data())
-
-        if posn.u1:
-            ones.extend(self.indices_w_size(1))
-        if posn.u2:
-            ones.extend(self.indices_w_size(2))
-        if posn.u3:
-            ones.extend(self.indices_w_size(3))
-
-        assert len(ones) == 3
+        assert len(ones) == 3, (ones, self._data())
         return ones
 
 
-def alg(compare):
+def find_three_ones(compare):
     indices = range(100)
     partition = Partition(indices)
 
     while not partition.done():
         i, j = partition.indices_to_compare()
-        sig = partition._signature()
-        assert not partition.equivalent(i, j), (sig, (i, j))
         result = compare(i, j)
         partition.register_comparison(i, j, result)
-        assert sig != partition._signature()
 
     return partition.solution()
-
-
-def trial(input):
-    soln = frozenset(i for i, b in enumerate(input) if b == 1)
-    assert len(input) == 100
-    assert len(soln) == 3
-
-    n_comparisons = 0
-
-    def compare(i, j):
-        nonlocal n_comparisons
-        n_comparisons += 1
-        return (input[i] > input[j]) - (input[i] < input[j])
-
-    alg_soln = alg(compare)
-
-    assert frozenset(alg_soln) == soln
-    return n_comparisons
-
-
-def choose(n, k):
-    if not (0 <= k <= n):
-        return
-    if k == 0:
-        yield ()
-        return
-    for c in choose(n - 1, k):
-        yield c
-    for c in choose(n - 1, k - 1):
-        yield c + (n - 1,)
-
-
-def random_choice(n, k):
-    return tuple(random.sample(range(n), k))
-
-
-def input(n, one_indices):
-    return tuple(1 if i in one_indices else 0 for i in range(n))
-
-
-print("imported moves, starting trial", flush=True)
-
-# soln = random_choice(100, 3)
-
-# print(trial(input(100, soln)))
-
-print(max(trial(input(100, c)) for c in choose(100, 3)))
