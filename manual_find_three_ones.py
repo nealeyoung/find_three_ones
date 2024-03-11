@@ -59,17 +59,16 @@ def find_three_ones(compare):
     twenty_pairs = group(range(40), 2)
     twenty_triples = group(range(40, 100), 3)
 
-    def find_in_groups(groups, yield_groups=False):
-        for group in groups:
-            i, *rest = group
+    def find_in_groups(groups):
+        for i, *rest in groups:
             smaller_than_i, equal_to_i, larger_than_i = [], [i], []
             by_result = {-1: smaller_than_i, 0: equal_to_i, 1: larger_than_i}
             for j in rest:
                 by_result[compare(j, i)].append(j)
             if smaller_than_i:
-                yield from group if yield_groups else equal_to_i
+                yield from equal_to_i
             elif larger_than_i:
-                yield from group if yield_groups else larger_than_i
+                yield from larger_than_i
 
     found_in_pairs = tuple(find_in_groups(twenty_pairs))
     found_in_triples = tuple(find_in_groups(twenty_triples))
@@ -78,16 +77,19 @@ def find_three_ones(compare):
     if len(found) == 3:
         return found
 
-    if len(found) == 0:  # must be a (1, 1, 1) triple
-        monochromatic_groups = twenty_triples
-    else:
-        assert len(found) == 1  # must be a (1, 1) pair, and a (0, 1) pair or a (0, 0, 1) triple
-        monochromatic_groups = tuple(g for g in twenty_pairs if found[0] not in g)
+    def find_ones_group(monochromatic_groups):
+        ones = (
+            tuple(find_in_groups(group([c[0] for c in monochromatic_groups], 2)))
+            or monochromatic_groups[-1]  # only happens if len(monochromatic_groups) is odd
+        )
+        return next(g for g in monochromatic_groups if ones[0] in g)
 
-    return found + (
-        tuple(find_in_groups(group([c[0] for c in monochromatic_groups], 2), yield_groups=True))
-        or monochromatic_groups[-1]  # only happens if len(monochromatic_groups) is odd
-    )
+    if len(found) == 0:  # must be a (1, 1, 1) triple
+        return find_ones_group(twenty_triples)
+
+    assert len(found) == 1  # must be a (1, 1) pair, and a (0, 1) pair or a (0, 0, 1) triple
+
+    return found + find_ones_group(tuple(g for g in twenty_pairs if found[0] not in g))
 
 
 ##########################################################################################
