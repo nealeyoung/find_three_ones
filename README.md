@@ -85,3 +85,6 @@ rows chosen so that, if the algorithm looks for a row and doesn't find it, we ha
 some simple rules for computing what it should be.
 
 
+*EDIT: The cs.stackexchange.com collaborator found a direct algorithm. The file
+manual_find_three_ones.py contains my implementation that algorithm.
+
