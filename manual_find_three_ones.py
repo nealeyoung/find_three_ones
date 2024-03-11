@@ -60,7 +60,8 @@ def find_three_ones(compare):
     twenty_triples = group(range(40, 100), 3)
 
     def find_in_groups(groups):
-        for i, *rest in groups:
+        for group in groups:
+            i, *rest = group
             smaller_than_i, equal_to_i, larger_than_i = [], [i], []
             by_result = {-1: smaller_than_i, 0: equal_to_i, 1: larger_than_i}
             for j in rest:
@@ -77,19 +78,17 @@ def find_three_ones(compare):
     if len(found) == 3:
         return found
 
-    def find_ones_group(monochromatic_groups):
-        ones = (
-            tuple(find_in_groups(group([c[0] for c in monochromatic_groups], 2)))
-            or monochromatic_groups[-1]  # only happens if len(monochromatic_groups) is odd
-        )
-        return next(g for g in monochromatic_groups if ones[0] in g)
-
     if len(found) == 0:  # must be a (1, 1, 1) triple
-        return find_ones_group(twenty_triples)
+        monochromatic_groups = twenty_triples
+    else:
+        assert len(found) == 1  # must be a (1, 1) pair, and a (0, 1) pair or a (0, 0, 1) triple
+        monochromatic_groups = tuple(g for g in twenty_pairs if found[0] not in g)
 
-    assert len(found) == 1  # must be a (1, 1) pair, and a (0, 1) pair or a (0, 0, 1) triple
-
-    return found + find_ones_group(tuple(g for g in twenty_pairs if found[0] not in g))
+    ones = (
+        tuple(find_in_groups(group([c[0] for c in monochromatic_groups], 2)))
+        or monochromatic_groups[-1]  # only happens if len(monochromatic_groups) is odd
+    )
+    return found + next(g for g in monochromatic_groups if ones[0] in g)
 
 
 ##########################################################################################
